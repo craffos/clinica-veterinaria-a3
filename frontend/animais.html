@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Animais · Clínica Veterinária</title>
+  <link rel="stylesheet" href="css/style.css?v=2">
+</head>
+<body>
+  <script src="js/api.js?v=2"></script>
+  <script src="js/auth.js?v=2"></script>
+  <script src="js/nav.js?v=2"></script>
+  <script>
+    const conteudo = renderNav("animais");
+    const parametros = new URLSearchParams(location.search);
+    const idTutorFiltro = parametros.get("id_tutor");
+
+    conteudo.innerHTML = `
+      <div class="cabecalho-pagina">
+        <div>
+          <h1>Animais</h1>
+          <p>${idTutorFiltro ? "Animais do tutor selecionado." : "Todos os animais cadastrados na clínica."}</p>
+        </div>
+      </div>
+
+      <div class="cartao">
+        <div class="barra-ferramentas">
+          <input type="search" id="busca" placeholder="Buscar pelo nome do animal...">
+          ${idTutorFiltro ? '<a href="animais.html" class="botao-texto">Ver todos os animais</a>' : ""}
+          <button type="button" class="botao-primario empurra-direita" id="botao-novo">+ Novo animal</button>
+        </div>
+        <div id="area-tabela"></div>
+      </div>
+
+      <div class="fundo-modal" id="fundo-modal" hidden>
+        <div class="modal">
+          <button class="fechar-modal" id="fechar-modal" type="button">&times;</button>
+          <h2 id="titulo-modal">Novo animal</h2>
+          <div id="aviso-modal"></div>
+          <form id="form-animal">
+            <input type="hidden" id="id_animal">
+
+            <label for="nome">Nome do animal</label>
+            <input id="nome" required>
+
+            <label for="id_tutor">Tutor</label>
+            <select id="id_tutor" required></select>
+
+            <div class="linha-campos">
+              <div>
+                <label for="id_especie">Espécie</label>
+                <select id="id_especie" required></select>
+              </div>
+              <div>
+                <label for="id_raca">Raça</label>
+                <select id="id_raca" required></select>
+              </div>
+            </div>
+
+            <div class="linha-campos">
+              <div>
+                <label for="sexo">Sexo</label>
+                <select id="sexo" required>
+                  <option value="M">Macho</option>
+                  <option value="F">Fêmea</option>
+                </select>
+              </div>
+              <div>
+                <label for="porte">Porte</label>
+                <select id="porte">
+                  <option value="">Não informado</option>
+                  <option value="PEQUENO">Pequeno</option>
+                  <option value="MEDIO">Médio</option>
+                  <option value="GRANDE">Grande</option>
+                </select>
+              </div>
+              <div>
+                <label for="dt_nasc">Nascimento</label>
+                <input id="dt_nasc" type="date">
+              </div>
+            </div>
+
+            <div class="linha-campos">
+              <div>
+                <label for="cor">Cor</label>
+                <input id="cor" maxlength="80">
+              </div>
+              <div>
+                <label for="peso_atual">Peso atual (kg)</label>
+                <input id="peso_atual" type="number" min="0.01" max="9999.99" step="0.01">
+              </div>
+              <div>
+                <label for="idade_estimada">Idade estimada (meses)</label>
+                <input id="idade_estimada" type="number" min="0" max="65535" step="1">
+              </div>
+            </div>
+            <label for="observacao">Observações</label>
+            <textarea id="observacao"></textarea>
+
+            <div class="barra-acoes">
+              <button type="button" class="botao-secundario" id="cancelar-modal">Cancelar</button>
+              <button type="submit" id="salvar-animal">Salvar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    const areaTabela = document.getElementById("area-tabela");
+    const fundoModal = document.getElementById("fundo-modal");
+    const formAnimal = document.getElementById("form-animal");
+    const avisoModal = document.getElementById("aviso-modal");
+    const selectTutor = document.getElementById("id_tutor");
+    const selectEspecie = document.getElementById("id_especie");
+    const selectRaca = document.getElementById("id_raca");
+
+    async function preencherTutores(idSelecionado) {
+      const tutores = await api.get("/tutores/");
+      selectTutor.innerHTML = tutores
+        .map((t) => `<option value="${t.id_tutor}">${escaparHtml(t.nome_completo)} (${escaparHtml(t.cpf)})</option>`)
+        .join("");
+      if (idSelecionado) selectTutor.value = idSelecionado;
+    }
+
+    async function preencherEspecies(idSelecionada) {
+      const especies = await api.get("/especies/");
+      selectEspecie.innerHTML = especies
+        .map((e) => `<option value="${e.id_especie}">${escaparHtml(e.nome)}</option>`)
+        .join("");
+      if (idSelecionada) selectEspecie.value = idSelecionada;
+    }
+
+    async function preencherRacas(idEspecie, idSelecionada) {
+      if (!idEspecie) { selectRaca.innerHTML = ""; return; }
+      const racas = await api.get(`/racas/?id_especie=${idEspecie}`);
+      selectRaca.innerHTML = racas
+        .map((r) => `<option value="${r.id_raca}">${escaparHtml(r.nome)}</option>`)
+        .join("");
+      if (idSelecionada) selectRaca.value = idSelecionada;
+    }
+
+    selectEspecie.addEventListener("change", () => preencherRacas(selectEspecie.value));
+
+    async function abrirModal(animal) {
+      formAnimal.reset();
+      avisoModal.innerHTML = "";
+      document.getElementById("titulo-modal").textContent = animal ? "Editar animal" : "Novo animal";
+      document.getElementById("id_animal").value = animal ? animal.id_animal : "";
+
+      await preencherTutores(animal ? animal.id_tutor : idTutorFiltro);
+      await preencherEspecies(animal ? animal.id_especie : null);
+      await preencherRacas(selectEspecie.value, animal ? animal.id_raca : null);
+
+      if (animal) {
+        document.getElementById("nome").value = animal.nome;
+        document.getElementById("sexo").value = animal.sexo;
+        document.getElementById("porte").value = animal.porte || "";
+        document.getElementById("dt_nasc").value = (animal.dt_nasc || "").slice(0, 10);
+        document.getElementById("cor").value = animal.cor ?? "";
+        document.getElementById("peso_atual").value = animal.peso_atual ?? "";
+        document.getElementById("idade_estimada").value = animal.idade_estimada ?? "";
+        document.getElementById("observacao").value = animal.observacao || "";
+      }
+      fundoModal.hidden = false;
+    }
+
+    function fecharModal() { fundoModal.hidden = true; }
+    document.getElementById("botao-novo").addEventListener("click", () => abrirModal(null));
+    document.getElementById("fechar-modal").addEventListener("click", fecharModal);
+    document.getElementById("cancelar-modal").addEventListener("click", fecharModal);
+    fundoModal.addEventListener("click", (ev) => { if (ev.target === fundoModal) fecharModal(); });
+
+    formAnimal.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const botao = document.getElementById("salvar-animal");
+      botao.disabled = true;
+      avisoModal.innerHTML = "";
+      const idAnimal = document.getElementById("id_animal").value;
+      const corpo = {
+        nome: document.getElementById("nome").value,
+        id_tutor: Number(selectTutor.value),
+        id_especie: Number(selectEspecie.value),
+        id_raca: Number(selectRaca.value),
+        sexo: document.getElementById("sexo").value,
+        porte: document.getElementById("porte").value || null,
+        dt_nasc: document.getElementById("dt_nasc").value || null,
+        cor: document.getElementById("cor").value.trim() || null,
+        peso_atual: document.getElementById("peso_atual").value || null,
+        idade_estimada: document.getElementById("idade_estimada").value || null,
+        observacao: document.getElementById("observacao").value || null,
+      };
+      try {
+        if (idAnimal) await api.put(`/animais/${idAnimal}`, corpo);
+        else await api.post("/animais/", corpo);
+        fecharModal();
+        carregarAnimais();
+      } catch (erro) {
+        mostrarAviso(avisoModal, erro.message);
+      } finally {
+        botao.disabled = false;
+      }
+    });
+
+    async function inativarAnimal(animal) {
+      if (!confirm(`Inativar "${animal.nome}"? O histórico clínico é preservado.`)) return;
+      try {
+        await api.delete(`/animais/${animal.id_animal}`);
+        carregarAnimais();
+      } catch (erro) {
+        alert(erro.message);
+      }
+    }
+
+    function linhaAnimal(a) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><strong>${escaparHtml(a.nome)}</strong></td>
+        <td>${escaparHtml(a.nome_especie)} / ${escaparHtml(a.nome_raca)}</td>
+        <td>${a.sexo === "M" ? "Macho" : "Fêmea"}</td>
+        <td>${escaparHtml(a.nome_tutor)}</td>
+        <td class="acoes">
+          <button class="botao-texto" data-acao="ficha">Ver ficha</button>
+          <button class="botao-texto" data-acao="editar">Editar</button>
+          <button class="botao-texto" data-acao="inativar" style="color:var(--vermelho)">Inativar</button>
+        </td>
+      `;
+      tr.querySelector('[data-acao="ficha"]').addEventListener("click", () => {
+        location.href = `animal.html?id=${a.id_animal}`;
+      });
+      tr.querySelector('[data-acao="editar"]').addEventListener("click", () => abrirModal(a));
+      tr.querySelector('[data-acao="inativar"]').addEventListener("click", () => inativarAnimal(a));
+      return tr;
+    }
+
+    async function carregarAnimais() {
+      areaTabela.innerHTML = '<div class="carregando">Carregando...</div>';
+      try {
+        const termo = document.getElementById("busca").value.trim();
+        const filtros = new URLSearchParams();
+        if (termo) filtros.set("q", termo);
+        if (idTutorFiltro) filtros.set("id_tutor", idTutorFiltro);
+        const animais = await api.get(`/animais/?${filtros.toString()}`);
+        if (animais.length === 0) {
+          areaTabela.innerHTML = '<div class="tabela-vazia">Nenhum animal encontrado.</div>';
+          return;
+        }
+        const tabela = document.createElement("table");
+        tabela.innerHTML = `
+          <thead><tr><th>Nome</th><th>Espécie / Raça</th><th>Sexo</th><th>Tutor</th><th></th></tr></thead>
+          <tbody></tbody>
+        `;
+        const corpo = tabela.querySelector("tbody");
+        animais.forEach((a) => corpo.appendChild(linhaAnimal(a)));
+        areaTabela.innerHTML = "";
+        areaTabela.appendChild(tabela);
+      } catch (erro) {
+        mostrarAviso(areaTabela, erro.message);
+      }
+    }
+
+    let temporizadorBusca;
+    document.getElementById("busca").addEventListener("input", () => {
+      clearTimeout(temporizadorBusca);
+      temporizadorBusca = setTimeout(carregarAnimais, 300);
+    });
+
+    carregarAnimais();
+  </script>
+</body>
+</html>

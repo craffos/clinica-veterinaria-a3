@@ -1,0 +1,255 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Início · Clínica Veterinária</title>
+  <link rel="stylesheet" href="css/style.css?v=2">
+</head>
+<body>
+
+  <script src="js/api.js?v=2"></script>
+  <script src="js/auth.js?v=2"></script>
+  <script src="js/nav.js?v=2"></script>
+
+  <script>
+
+    const conteudo = renderNav("inicio");
+
+    const veterinario = getVeterinarioLogado();
+
+
+    conteudo.innerHTML = `
+
+      <div class="cabecalho-pagina">
+        <div>
+          <h1>
+            Olá, ${escaparHtml(
+              veterinario ? veterinario.nome_completo : ""
+            )}
+          </h1>
+
+          <p>Resumo rápido do sistema da clínica.</p>
+        </div>
+      </div>
+
+      <div class="grade-cartoes" id="cartoes"></div>
+
+      <div id="aviso-dashboard"></div>
+
+      <div class="cartao">
+
+        <h2>Fluxo do sistema</h2>
+
+        <p class="texto-suave" style="line-height:1.6">
+
+          <strong>Tutores</strong> cadastram seus endereços
+          e dados pessoais →
+
+          cada tutor tem um ou mais <strong>Animais</strong> →
+
+          na ficha do animal você registra
+          <strong>Consultas</strong>,
+          <strong>Vacinas</strong> e o
+          <strong>Microchip</strong> →
+
+          cadastros e atualizações de animais, além das
+          vacinas antirrábicas, são encaminhados à API
+          governamental simulada após a persistência local.
+
+        </p>
+
+        <p class="texto-suave"
+           style="line-height:1.6;margin-top:12px">
+
+          Em caso de indisponibilidade governamental,
+          os dados permanecem armazenados na clínica
+          e as operações elegíveis podem ser reenviadas
+          pela página <strong>Integração governo</strong>.
+
+        </p>
+
+      </div>
+
+    `;
+
+
+    const cartoes = document.getElementById("cartoes");
+
+    const aviso =
+      document.getElementById("aviso-dashboard");
+
+
+    function cartaoEstatistica(
+      href,
+      icone,
+      numero,
+      rotulo
+    ) {
+
+      const a = document.createElement("a");
+
+      a.href = href;
+
+      a.className = "cartao-estatistica";
+
+      a.innerHTML = `
+
+        <div class="icone">
+          ${ICONES[icone]}
+        </div>
+
+        <div>
+
+          <div class="numero">
+            ${escaparHtml(numero)}
+          </div>
+
+          <div class="rotulo">
+            ${escaparHtml(rotulo)}
+          </div>
+
+        </div>
+
+      `;
+
+      return a;
+
+    }
+
+
+    async function carregarResumo() {
+
+      cartoes.innerHTML = "";
+
+      aviso.textContent = "";
+
+
+      const [
+        tutores,
+        animais,
+        integracoes
+      ] = await Promise.allSettled([
+
+        api.get("/tutores/"),
+
+        api.get("/animais/"),
+
+        api.get("/integracoes/")
+
+      ]);
+
+
+      const tutoresOk =
+        tutores.status === "fulfilled" &&
+        Array.isArray(tutores.value);
+
+      const animaisOk =
+        animais.status === "fulfilled" &&
+        Array.isArray(animais.value);
+
+      const integracoesOk =
+        integracoes.status === "fulfilled" &&
+        Array.isArray(integracoes.value);
+
+
+      const listaIntegracoes = integracoesOk
+        ? integracoes.value
+        : [];
+
+
+      const confirmadas = listaIntegracoes.filter(
+        i => i.status === "CONFIRMADO"
+      ).length;
+
+
+      const naoConfirmadas = listaIntegracoes.filter(
+        i => i.status !== "CONFIRMADO"
+      ).length;
+
+
+      cartoes.appendChild(
+
+        cartaoEstatistica(
+
+          "tutores.html",
+          "tutores",
+          tutoresOk ? tutores.value.length : "—",
+          "Tutores ativos"
+
+        )
+
+      );
+
+
+      cartoes.appendChild(
+
+        cartaoEstatistica(
+
+          "animais.html",
+          "animais",
+          animaisOk ? animais.value.length : "—",
+          "Animais ativos"
+
+        )
+
+      );
+
+
+      cartoes.appendChild(
+
+        cartaoEstatistica(
+
+          "integracoes.html",
+          "integracoes",
+          integracoesOk ? confirmadas : "—",
+          "Integrações confirmadas"
+
+        )
+
+      );
+
+
+      cartoes.appendChild(
+
+        cartaoEstatistica(
+
+          "integracoes.html",
+          "integracoes",
+          integracoesOk ? naoConfirmadas : "—",
+          "Integrações não confirmadas"
+
+        )
+
+      );
+
+
+      if (!tutoresOk || !animaisOk || !integracoesOk) {
+
+        mostrarAviso(
+          aviso,
+          "Não foi possível carregar todos os indicadores."
+        );
+
+      } else if (naoConfirmadas > 0) {
+
+        mostrarAviso(
+          aviso,
+          "Existem " + naoConfirmadas +
+          " integrações não confirmadas. " +
+          "Consulte a página Integração governo " +
+          "para acompanhar as operações."
+        );
+
+      }
+
+    }
+
+
+    carregarResumo();
+
+  </script>
+
+</body>
+</html>

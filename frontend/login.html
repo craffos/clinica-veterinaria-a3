@@ -1,0 +1,495 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Entrar · Clínica Veterinária</title>
+  <link rel="stylesheet" href="css/style.css?v=2">
+</head>
+<body>
+  <div class="pagina-login">
+    <div class="caixa-login">
+
+      <div class="pata">
+        <svg viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round">
+          <ellipse cx="12" cy="15.3" rx="4.3" ry="3.4"/>
+          <circle cx="6.9" cy="9.3" r="1.8"/>
+          <circle cx="11" cy="6.6" r="1.8"/>
+          <circle cx="15.3" cy="6.8" r="1.8"/>
+          <circle cx="18.8" cy="10" r="1.8"/>
+        </svg>
+      </div>
+
+      <h1>Clínica Veterinária</h1>
+      <p class="subtitulo">Sistema de Gestão · Projeto A3</p>
+
+      <div id="aviso" role="status" aria-live="polite"></div>
+
+      <!-- FORMULÁRIO DE LOGIN -->
+
+      <form id="form-login">
+
+        <label for="email">E-mail</label>
+        <input id="email"
+               type="email"
+               required
+               autocomplete="username">
+
+        <label for="senha">Senha</label>
+        <input id="senha"
+               type="password"
+               required
+               autocomplete="current-password">
+
+        <button type="submit" id="botao-entrar">
+          Entrar
+        </button>
+
+      </form>
+
+      <!-- FORMULÁRIO DE CADASTRO -->
+
+      <form id="form-registro" hidden>
+
+        <label for="r-nome">Nome completo</label>
+        <input id="r-nome"
+               required
+               maxlength="150"
+               autocomplete="name">
+
+        <div class="linha-campos">
+          <div>
+            <label for="r-cpf">CPF</label>
+            <input id="r-cpf"
+                   required
+                   maxlength="14"
+                   inputmode="numeric"
+                   placeholder="000.000.000-00">
+          </div>
+
+          <div>
+            <label for="r-telefone">Telefone</label>
+            <input id="r-telefone"
+                   type="tel"
+                   maxlength="20"
+                   autocomplete="tel">
+          </div>
+        </div>
+
+        <div class="linha-campos">
+          <div>
+            <label for="r-crmv">CRMV</label>
+            <input id="r-crmv"
+                   maxlength="20"
+                   required>
+          </div>
+
+          <div>
+            <label for="r-uf-crmv">UF do CRMV</label>
+            <input id="r-uf-crmv"
+                   maxlength="2"
+                   minlength="2"
+                   required
+                   placeholder="RJ">
+          </div>
+        </div>
+
+        <label for="r-email">E-mail</label>
+        <input id="r-email"
+               type="email"
+               maxlength="120"
+               required
+               autocomplete="email">
+
+        <label for="r-senha">Senha (mín. 6 caracteres)</label>
+        <input id="r-senha"
+               type="password"
+               minlength="6"
+               required
+               autocomplete="new-password">
+
+        <button type="submit" id="botao-registrar">
+          Criar conta
+        </button>
+
+      </form>
+
+      <!-- FORMULÁRIO DE CONFIRMAÇÃO -->
+
+      <form id="form-confirmacao" hidden>
+
+        <h2 style="font-size: 1.15rem; margin-bottom: 12px;">
+          Confirmação de e-mail
+        </h2>
+
+        <p style="font-size: 0.9rem; margin-bottom: 16px;">
+          Informe seu e-mail e o token de confirmação
+          recebido para ativar sua conta.
+        </p>
+
+        <label for="c-email">E-mail cadastrado</label>
+        <input id="c-email"
+               type="email"
+               required
+               autocomplete="email">
+
+        <label for="c-token">Token de confirmação</label>
+        <input id="c-token"
+               type="text"
+               required
+               autocomplete="off"
+               spellcheck="false"
+               autocapitalize="off"
+               placeholder="Cole o token recebido">
+
+        <p style="font-size: 0.8rem; margin: 12px 0;">
+          Ambiente acadêmico: o envio de e-mail é simulado.
+          O token é disponibilizado no terminal da API
+          da clínica e possui validade de 30 minutos.
+        </p>
+
+        <button type="submit" id="botao-confirmar">
+          Confirmar e-mail
+        </button>
+
+      </form>
+
+      <!-- NAVEGAÇÃO ENTRE FORMULÁRIOS -->
+
+      <p class="alternar-login">
+        <span id="texto-alternar">Ainda não tem conta?</span>
+
+        <button type="button" id="botao-alternar">
+          Cadastre-se
+        </button>
+      </p>
+
+      <p class="alternar-login" id="area-confirmacao">
+        <button type="button" id="botao-abrir-confirmacao">
+          Confirmar meu e-mail
+        </button>
+      </p>
+
+    </div>
+  </div>
+
+  <script src="js/api.js?v=2"></script>
+  <script src="js/auth.js?v=2"></script>
+
+  <script>
+
+    // Redireciona caso exista uma sessão local.
+
+    if (getToken()) {
+      location.href = "index.html";
+    }
+
+    const aviso = document.getElementById("aviso");
+
+    const formLogin =
+      document.getElementById("form-login");
+
+    const formRegistro =
+      document.getElementById("form-registro");
+
+    const formConfirmacao =
+      document.getElementById("form-confirmacao");
+
+    const botaoAlternar =
+      document.getElementById("botao-alternar");
+
+    const textoAlternar =
+      document.getElementById("texto-alternar");
+
+    const areaConfirmacao =
+      document.getElementById("area-confirmacao");
+
+    const botaoAbrirConfirmacao =
+      document.getElementById("botao-abrir-confirmacao");
+
+    let modoAtual = "login";
+    let requisicaoEmAndamento = false;
+
+
+    // Exibe mensagens sem interpretar conteúdo como HTML.
+
+    function mostrarAvisoLocal(mensagem, tipo = "erro") {
+
+      aviso.textContent = "";
+
+      const elemento = document.createElement("div");
+
+      elemento.textContent = mensagem;
+      elemento.style.padding = "12px";
+      elemento.style.marginBottom = "16px";
+      elemento.style.borderRadius = "8px";
+      elemento.style.fontSize = "0.9rem";
+
+      if (tipo === "sucesso") {
+
+        elemento.style.backgroundColor = "#dcfce7";
+        elemento.style.color = "#166534";
+        elemento.style.border = "1px solid #86efac";
+
+      } else {
+
+        elemento.style.backgroundColor = "#fee2e2";
+        elemento.style.color = "#991b1b";
+        elemento.style.border = "1px solid #fca5a5";
+
+      }
+
+      aviso.appendChild(elemento);
+    }
+
+
+    // Controla a navegação entre os três formulários.
+
+    function alterarModo(modo) {
+
+      modoAtual = modo;
+
+      formLogin.hidden = modo !== "login";
+      formRegistro.hidden = modo !== "registro";
+      formConfirmacao.hidden = modo !== "confirmacao";
+
+      areaConfirmacao.hidden = modo === "confirmacao";
+
+      aviso.textContent = "";
+
+      if (modo === "login") {
+
+        textoAlternar.textContent = "Ainda não tem conta?";
+        botaoAlternar.textContent = "Cadastre-se";
+
+      } else {
+
+        textoAlternar.textContent = "Já possui uma conta?";
+        botaoAlternar.textContent = "Voltar ao login";
+
+      }
+    }
+
+
+    // Impede navegação durante uma requisição.
+
+    function controlarRequisicao(botao, ocupado, texto) {
+
+      requisicaoEmAndamento = ocupado;
+
+      botao.disabled = ocupado;
+      botao.textContent = texto;
+
+      botaoAlternar.disabled = ocupado;
+      botaoAbrirConfirmacao.disabled = ocupado;
+    }
+
+
+    botaoAlternar.addEventListener("click", () => {
+
+      if (requisicaoEmAndamento) return;
+
+      if (modoAtual === "login") {
+
+        alterarModo("registro");
+
+      } else {
+
+        alterarModo("login");
+
+      }
+    });
+
+
+    botaoAbrirConfirmacao.addEventListener("click", () => {
+
+      if (requisicaoEmAndamento) return;
+
+      const email = modoAtual === "registro"
+        ? document.getElementById("r-email").value
+        : document.getElementById("email").value;
+
+      alterarModo("confirmacao");
+
+      document.getElementById("c-email").value = email;
+
+    });
+
+
+    // LOGIN DO VETERINÁRIO
+
+    formLogin.addEventListener("submit", async (ev) => {
+
+      ev.preventDefault();
+
+      if (requisicaoEmAndamento) return;
+
+      const botao = document.getElementById("botao-entrar");
+
+      controlarRequisicao(botao, true, "Entrando...");
+
+      aviso.textContent = "";
+
+      try {
+
+        const resultado = await api.post("/auth/login", {
+
+          email: document.getElementById("email").value.trim(),
+
+          senha: document.getElementById("senha").value
+
+        });
+
+        salvarSessao(resultado.token, resultado.veterinario);
+
+        location.href = "index.html";
+
+      } catch (erro) {
+
+        mostrarAvisoLocal(erro.message);
+
+      } finally {
+
+        controlarRequisicao(botao, false, "Entrar");
+
+      }
+    });
+
+
+    // CADASTRO DO VETERINÁRIO
+
+    formRegistro.addEventListener("submit", async (ev) => {
+
+      ev.preventDefault();
+
+      if (requisicaoEmAndamento) return;
+
+      const botao =
+        document.getElementById("botao-registrar");
+
+      controlarRequisicao(botao, true, "Criando conta...");
+
+      aviso.textContent = "";
+
+      const email =
+        document.getElementById("r-email").value.trim();
+
+      try {
+
+        await api.post("/auth/registrar", {
+
+          nome_completo:
+            document.getElementById("r-nome").value.trim(),
+
+          cpf:
+            document.getElementById("r-cpf").value.trim(),
+
+          telefone:
+            document.getElementById("r-telefone").value.trim(),
+
+          crmv:
+            document.getElementById("r-crmv").value.trim(),
+
+          uf_crmv:
+            document.getElementById("r-uf-crmv")
+              .value.trim().toUpperCase(),
+
+          email: email,
+
+          senha:
+            document.getElementById("r-senha").value
+
+        });
+
+        formRegistro.reset();
+
+        alterarModo("confirmacao");
+
+        document.getElementById("c-email").value = email;
+
+        mostrarAvisoLocal(
+          "Conta criada com sucesso! Confirme seu e-mail " +
+          "antes de realizar o login.",
+          "sucesso"
+        );
+
+      } catch (erro) {
+
+        mostrarAvisoLocal(erro.message);
+
+      } finally {
+
+        controlarRequisicao(botao, false, "Criar conta");
+
+      }
+    });
+
+
+    // CONFIRMAÇÃO DE E-MAIL
+
+    formConfirmacao.addEventListener("submit", async (ev) => {
+
+      ev.preventDefault();
+
+      if (requisicaoEmAndamento) return;
+
+      const botao =
+        document.getElementById("botao-confirmar");
+
+      controlarRequisicao(botao, true, "Confirmando...");
+
+      aviso.textContent = "";
+
+      const email =
+        document.getElementById("c-email").value.trim();
+
+      const token =
+        document.getElementById("c-token").value.trim();
+
+      try {
+
+        await api.post("/auth/confirmar", {
+
+          email: email,
+          token: token
+
+        });
+
+        formConfirmacao.reset();
+
+        alterarModo("login");
+
+        document.getElementById("email").value = email;
+
+        document.getElementById("senha").value = "";
+
+        mostrarAvisoLocal(
+          "E-mail confirmado com sucesso! " +
+          "Agora você pode acessar o sistema.",
+          "sucesso"
+        );
+
+        document.getElementById("senha").focus();
+
+      } catch (erro) {
+
+        mostrarAvisoLocal(erro.message);
+
+      } finally {
+
+        controlarRequisicao(botao, false, "Confirmar e-mail");
+
+      }
+    });
+
+
+    // Estado inicial da página.
+
+    alterarModo("login");
+
+  </script>
+</body>
+</html>

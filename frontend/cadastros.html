@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Espécies e raças · Clínica Veterinária</title>
+  <link rel="stylesheet" href="css/style.css?v=2">
+</head>
+<body>
+  <script src="js/api.js?v=2"></script>
+  <script src="js/auth.js?v=2"></script>
+  <script src="js/nav.js?v=2"></script>
+  <script>
+    const conteudo = renderNav("cadastros");
+
+    conteudo.innerHTML = `
+      <div class="cabecalho-pagina">
+        <div>
+          <h1>Espécies e raças</h1>
+          <p>Cadastro de apoio, usado nos formulários de animal.</p>
+        </div>
+      </div>
+
+      <div class="cartao">
+        <div class="barra-ferramentas">
+          <h2 style="margin:0">Espécies</h2>
+          <button type="button" class="botao-primario empurra-direita" id="nova-especie">+ Nova espécie</button>
+        </div>
+        <div id="tabela-especies"></div>
+      </div>
+
+      <div class="cartao">
+        <div class="barra-ferramentas">
+          <h2 style="margin:0">Raças</h2>
+          <select id="filtro-especie" style="max-width:220px"></select>
+          <button type="button" class="botao-primario empurra-direita" id="nova-raca">+ Nova raça</button>
+        </div>
+        <div id="tabela-racas"></div>
+      </div>
+
+      <div class="fundo-modal" id="fundo-modal-especie" hidden>
+        <div class="modal">
+          <button class="fechar-modal" data-fechar type="button">&times;</button>
+          <h2>Espécie</h2>
+          <div id="aviso-especie"></div>
+          <form id="form-especie">
+            <input type="hidden" id="e-id">
+            <label for="e-nome">Nome</label>
+            <input id="e-nome" required>
+            <label for="e-descricao">Descrição</label>
+            <textarea id="e-descricao"></textarea>
+            <div class="barra-acoes">
+              <button type="button" class="botao-secundario" data-fechar>Cancelar</button>
+              <button type="submit">Salvar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="fundo-modal" id="fundo-modal-raca" hidden>
+        <div class="modal">
+          <button class="fechar-modal" data-fechar type="button">&times;</button>
+          <h2>Raça</h2>
+          <div id="aviso-raca"></div>
+          <form id="form-raca">
+            <input type="hidden" id="r-id">
+            <label for="r-id-especie">Espécie</label>
+            <select id="r-id-especie" required></select>
+            <label for="r-nome">Nome</label>
+            <input id="r-nome" required>
+            <label for="r-descricao">Descrição</label>
+            <textarea id="r-descricao"></textarea>
+            <div class="barra-acoes">
+              <button type="button" class="botao-secundario" data-fechar>Cancelar</button>
+              <button type="submit">Salvar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    document.querySelectorAll("[data-fechar]").forEach((b) =>
+      b.addEventListener("click", () => { b.closest(".fundo-modal").hidden = true; })
+    );
+    document.querySelectorAll(".fundo-modal").forEach((m) =>
+      m.addEventListener("click", (ev) => { if (ev.target === m) m.hidden = true; })
+    );
+
+    // ---------- espécies ----------
+    const modalEspecie = document.getElementById("fundo-modal-especie");
+    const formEspecie = document.getElementById("form-especie");
+    const avisoEspecie = document.getElementById("aviso-especie");
+
+    function abrirModalEspecie(especie) {
+      formEspecie.reset();
+      avisoEspecie.innerHTML = "";
+      document.getElementById("e-id").value = especie ? especie.id_especie : "";
+      if (especie) {
+        document.getElementById("e-nome").value = especie.nome;
+        document.getElementById("e-descricao").value = especie.descricao || "";
+      }
+      modalEspecie.hidden = false;
+    }
+    document.getElementById("nova-especie").addEventListener("click", () => abrirModalEspecie(null));
+
+    formEspecie.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      avisoEspecie.innerHTML = "";
+      const id = document.getElementById("e-id").value;
+      const corpo = {
+        nome: document.getElementById("e-nome").value,
+        descricao: document.getElementById("e-descricao").value || null,
+      };
+      try {
+        if (id) await api.put(`/especies/${id}`, corpo);
+        else await api.post("/especies/", corpo);
+        modalEspecie.hidden = true;
+        await carregarEspecies();
+      } catch (erro) {
+        mostrarAviso(avisoEspecie, erro.message);
+      }
+    });
+
+    async function inativarEspecie(especie) {
+      if (!confirm(`Inativar a espécie "${especie.nome}"?`)) return;
+      await api.delete(`/especies/${especie.id_especie}`);
+      await carregarEspecies();
+    }
+
+    let TODAS_ESPECIES = [];
+
+    async function carregarEspecies() {
+      const area = document.getElementById("tabela-especies");
+      area.innerHTML = '<div class="carregando">Carregando...</div>';
+      TODAS_ESPECIES = await api.get("/especies/");
+
+      const filtro = document.getElementById("filtro-especie");
+      filtro.innerHTML = TODAS_ESPECIES.map((e) => `<option value="${e.id_especie}">${escaparHtml(e.nome)}</option>`).join("");
+
+      if (TODAS_ESPECIES.length === 0) {
+        area.innerHTML = '<div class="tabela-vazia">Nenhuma espécie cadastrada.</div>';
+      } else {
+        const tabela = document.createElement("table");
+        tabela.innerHTML = `
+          <thead><tr><th>Nome</th><th>Descrição</th><th></th></tr></thead>
+          <tbody>${TODAS_ESPECIES.map((e) => `
+            <tr>
+              <td><strong>${escaparHtml(e.nome)}</strong></td>
+              <td>${escaparHtml(e.descricao || "—")}</td>
+              <td class="acoes">
+                <button class="botao-texto" data-editar="${e.id_especie}">Editar</button>
+                <button class="botao-texto" data-inativar="${e.id_especie}" style="color:var(--vermelho)">Inativar</button>
+              </td>
+            </tr>
+          `).join("")}</tbody>
+        `;
+        tabela.querySelectorAll("[data-editar]").forEach((b) =>
+          b.addEventListener("click", () => abrirModalEspecie(TODAS_ESPECIES.find((e) => e.id_especie == b.dataset.editar)))
+        );
+        tabela.querySelectorAll("[data-inativar]").forEach((b) =>
+          b.addEventListener("click", () => inativarEspecie(TODAS_ESPECIES.find((e) => e.id_especie == b.dataset.inativar)))
+        );
+        area.innerHTML = "";
+        area.appendChild(tabela);
+      }
+      await carregarRacas();
+    }
+
+    // ---------- raças ----------
+    const modalRaca = document.getElementById("fundo-modal-raca");
+    const formRaca = document.getElementById("form-raca");
+    const avisoRaca = document.getElementById("aviso-raca");
+
+    function abrirModalRaca(raca) {
+      formRaca.reset();
+      avisoRaca.innerHTML = "";
+      document.getElementById("r-id-especie").innerHTML = TODAS_ESPECIES
+        .map((e) => `<option value="${e.id_especie}">${escaparHtml(e.nome)}</option>`).join("");
+      document.getElementById("r-id").value = raca ? raca.id_raca : "";
+      if (raca) {
+        document.getElementById("r-id-especie").value = raca.id_especie;
+        document.getElementById("r-nome").value = raca.nome;
+        document.getElementById("r-descricao").value = raca.descricao || "";
+      } else {
+        document.getElementById("r-id-especie").value = document.getElementById("filtro-especie").value;
+      }
+      modalRaca.hidden = false;
+    }
+    document.getElementById("nova-raca").addEventListener("click", () => abrirModalRaca(null));
+    document.getElementById("filtro-especie").addEventListener("change", carregarRacas);
+
+    formRaca.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      avisoRaca.innerHTML = "";
+      const id = document.getElementById("r-id").value;
+      const corpo = {
+        id_especie: Number(document.getElementById("r-id-especie").value),
+        nome: document.getElementById("r-nome").value,
+        descricao: document.getElementById("r-descricao").value || null,
+      };
+      try {
+        if (id) await api.put(`/racas/${id}`, corpo);
+        else await api.post("/racas/", corpo);
+        modalRaca.hidden = true;
+        await carregarRacas();
+      } catch (erro) {
+        mostrarAviso(avisoRaca, erro.message);
+      }
+    });
+
+    async function inativarRaca(raca) {
+      if (!confirm(`Inativar a raça "${raca.nome}"?`)) return;
+      await api.delete(`/racas/${raca.id_raca}`);
+      await carregarRacas();
+    }
+
+    async function carregarRacas() {
+      const area = document.getElementById("tabela-racas");
+      const idEspecie = document.getElementById("filtro-especie").value;
+      if (!idEspecie) { area.innerHTML = '<div class="tabela-vazia">Cadastre uma espécie primeiro.</div>'; return; }
+      area.innerHTML = '<div class="carregando">Carregando...</div>';
+      const racas = await api.get(`/racas/?id_especie=${idEspecie}`);
+      if (racas.length === 0) {
+        area.innerHTML = '<div class="tabela-vazia">Nenhuma raça cadastrada para esta espécie.</div>';
+        return;
+      }
+      const tabela = document.createElement("table");
+      tabela.innerHTML = `
+        <thead><tr><th>Nome</th><th>Descrição</th><th></th></tr></thead>
+        <tbody>${racas.map((r) => `
+          <tr>
+            <td><strong>${escaparHtml(r.nome)}</strong></td>
+            <td>${escaparHtml(r.descricao || "—")}</td>
+            <td class="acoes">
+              <button class="botao-texto" data-editar="${r.id_raca}">Editar</button>
+              <button class="botao-texto" data-inativar="${r.id_raca}" style="color:var(--vermelho)">Inativar</button>
+            </td>
+          </tr>
+        `).join("")}</tbody>
+      `;
+      tabela.querySelectorAll("[data-editar]").forEach((b) =>
+        b.addEventListener("click", () => abrirModalRaca(racas.find((r) => r.id_raca == b.dataset.editar)))
+      );
+      tabela.querySelectorAll("[data-inativar]").forEach((b) =>
+        b.addEventListener("click", () => inativarRaca(racas.find((r) => r.id_raca == b.dataset.inativar)))
+      );
+      area.innerHTML = "";
+      area.appendChild(tabela);
+    }
+
+    carregarEspecies();
+  </script>
+</body>
+</html>

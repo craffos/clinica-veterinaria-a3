@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ficha do animal · Clínica Veterinária</title>
+  <link rel="stylesheet" href="css/style.css?v=2">
+</head>
+<body>
+  <script src="js/api.js?v=2"></script>
+  <script src="js/auth.js?v=2"></script>
+  <script src="js/nav.js?v=2"></script>
+  <script>
+    const conteudo = renderNav("animais");
+    const idAnimal = new URLSearchParams(location.search).get("id");
+
+    if (!idAnimal) {
+      conteudo.innerHTML = '<div class="aviso aviso-erro">Nenhum animal selecionado. <a href="animais.html">Voltar</a></div>';
+      throw new Error("sem id na URL");
+    }
+
+    conteudo.innerHTML = `
+      <div class="cabecalho-pagina">
+        <div>
+          <a href="animais.html" class="botao-texto" style="padding-left:0">&larr; Voltar para Animais</a>
+          <h1 id="titulo-animal">Carregando...</h1>
+          <p id="subtitulo-animal"></p>
+          <p id="atributos-animal"></p>
+        </div>
+      </div>
+
+      <div class="abas">
+        <button type="button" class="ativa" data-aba="consultas">Consultas</button>
+        <button type="button" data-aba="vacinas">Vacinas</button>
+        <button type="button" data-aba="microchip">Microchip</button>
+      </div>
+
+      <!-- ===== Consultas ===== -->
+      <div class="aba-conteudo" id="aba-consultas">
+        <div class="cartao">
+          <h2>Registrar nova consulta</h2>
+          <div id="aviso-consulta"></div>
+          <form id="form-consulta">
+            <div class="linha-campos">
+              <div>
+                <label for="c-data-hora">Data e hora</label>
+                <input id="c-data-hora" type="datetime-local" required>
+              </div>
+              <div>
+                <label for="c-status">Status</label>
+                <select id="c-status">
+                  <option value="AGENDADA">Agendada</option>
+                  <option value="EM_ATENDIMENTO">Em atendimento</option>
+                  <option value="CONCLUIDA">Concluída</option>
+                  <option value="CANCELADA">Cancelada</option>
+                  <option value="NAO_COMPARECEU">Não compareceu</option>
+                </select>
+              </div>
+            </div>
+            <label for="c-motivo">Motivo</label>
+            <input id="c-motivo" maxlength="255" required>
+            <label for="c-historico">Anamnese / histórico clínico</label>
+            <textarea id="c-historico"></textarea>
+            <div class="linha-campos">
+              <div><label for="c-peso">Peso na consulta (kg)</label>
+                <input id="c-peso" type="number" min="0.01" max="9999.99" step="0.01"></div>
+              <div><label for="c-temperatura">Temperatura (°C)</label>
+                <input id="c-temperatura" type="number" min="0.01" max="99.99" step="0.01"></div>
+            </div>
+            <label for="c-sintomas">Sintomas</label>
+            <textarea id="c-sintomas"></textarea>
+            <label for="c-diagnostico">Diagnóstico</label>
+            <textarea id="c-diagnostico"></textarea>
+            <label for="c-tratamento">Tratamento</label>
+            <textarea id="c-tratamento"></textarea>
+            <label for="c-prescricao">Prescrição</label>
+            <textarea id="c-prescricao"></textarea>
+            <label for="c-observacao">Observações</label>
+            <textarea id="c-observacao"></textarea>
+            <div class="barra-acoes"><button type="submit">Registrar consulta</button></div>
+          </form>
+        </div>
+        <div class="cartao">
+          <h2>Histórico de consultas</h2>
+          <div id="lista-consultas"></div>
+        </div>
+      </div>
+
+      <!-- ===== Vacinas ===== -->
+      <div class="aba-conteudo" id="aba-vacinas" hidden>
+        <div class="cartao">
+          <h2>Registrar vacinação</h2>
+          <div id="aviso-vacina"></div>
+          <form id="form-vacina">
+            <div class="linha-campos">
+              <div>
+                <label for="v-nome">Nome da vacina</label>
+                <input id="v-nome" required>
+              </div>
+              <div>
+                <label for="v-data">Data prevista / aplicação</label>
+                <input id="v-data" type="date" required>
+              </div>
+            </div>
+            <div class="linha-campos">
+              <div>
+                <label for="v-fabricante">Fabricante</label>
+                <input id="v-fabricante">
+              </div>
+              <div>
+                <label for="v-lote">Lote</label>
+                <input id="v-lote">
+              </div>
+            </div>
+            <div class="linha-campos">
+              <div>
+                <label for="v-dose">Dose</label>
+                <input id="v-dose" placeholder="ex.: 1 mL">
+              </div>
+              <div>
+                <label for="v-via">Via de administração</label>
+                <input id="v-via" placeholder="ex.: subcutânea">
+              </div>
+              <div>
+                <label for="v-proxima">Próxima dose</label>
+                <input id="v-proxima" type="date">
+              </div>
+            </div>
+            <div class="linha-campos"><div><label for="v-tipo">Tipo de vacina</label><input id="v-tipo" maxlength="80"></div><div><label for="v-validade">Validade do lote</label><input id="v-validade" type="date"></div><div><label for="v-status">Status</label><select id="v-status"><option value="APLICADA">Aplicada</option><option value="AGENDADA">Agendada</option><option value="CANCELADA">Cancelada</option></select></div></div>
+            <div class="campo-checkbox">
+              <input type="checkbox" id="v-antirrabica">
+              <label for="v-antirrabica">É a vacina antirrábica (comunicada ao governo quando aplicada)</label>
+            </div>
+            <label for="v-observacao">Observações</label>
+            <textarea id="v-observacao"></textarea>
+            <div class="barra-acoes"><button type="submit">Registrar vacina</button></div>
+          </form>
+        </div>
+        <div class="cartao">
+          <h2>Histórico de vacinas</h2>
+          <div id="lista-vacinas"></div>
+        </div>
+      </div>
+
+      <!-- ===== Microchip ===== -->
+      <div class="aba-conteudo" id="aba-microchip" hidden>
+        <div class="cartao" id="cartao-status-microchip"></div>
+        <div class="cartao">
+          <h2>Histórico de vínculos</h2>
+          <div id="lista-microchip"></div>
+        </div>
+      </div>
+    `;
+
+    // ---------- abas ----------
+    document.querySelectorAll(".abas button").forEach((botao) => {
+      botao.addEventListener("click", () => {
+        document.querySelectorAll(".abas button").forEach((b) => b.classList.remove("ativa"));
+        botao.classList.add("ativa");
+        document.querySelectorAll(".aba-conteudo").forEach((d) => (d.hidden = true));
+        document.getElementById(`aba-${botao.dataset.aba}`).hidden = false;
+      });
+    });
+
+    // ---------- selos de status ----------
+    const SELO_CONSULTA = {
+      AGENDADA: "selo-azul", EM_ATENDIMENTO: "selo-laranja",
+      CONCLUIDA: "selo-verde", CANCELADA: "selo-cinza", NAO_COMPARECEU: "selo-cinza",
+    };
+    const ROTULO_CONSULTA = {
+      AGENDADA: "Agendada", EM_ATENDIMENTO: "Em atendimento",
+      CONCLUIDA: "Concluída", CANCELADA: "Cancelada", NAO_COMPARECEU: "Não compareceu",
+    };
+
+    // ---------- carregar dados do animal ----------
+    async function carregarAnimal() {
+      try {
+        const animal = await api.get(`/animais/${idAnimal}`);
+        document.getElementById("titulo-animal").textContent = animal.nome;
+        document.getElementById("subtitulo-animal").textContent =
+          `${animal.nome_especie} · ${animal.nome_raca} · tutor: ${animal.nome_tutor}`;
+        const peso = animal.peso_atual == null ? "Não informado" : `${Number(animal.peso_atual).toLocaleString("pt-BR", { maximumFractionDigits: 2 })} kg`;
+        const idade = animal.idade_estimada == null ? "Não informada" : `${animal.idade_estimada} meses`;
+        document.getElementById("atributos-animal").textContent =
+          `Cor: ${animal.cor || "Não informada"} · Peso: ${peso} · Idade estimada: ${idade}`;
+      } catch (erro) {
+        document.getElementById("titulo-animal").textContent = "Animal não encontrado";
+      }
+    }
+
+    // ---------- consultas ----------
+    async function carregarConsultas() {
+      const lista = document.getElementById("lista-consultas");
+      lista.innerHTML = '<div class="carregando">Carregando...</div>';
+      const consultas = await api.get(`/consultas/?id_animal=${idAnimal}`);
+      if (consultas.length === 0) {
+        lista.innerHTML = '<div class="tabela-vazia">Nenhuma consulta registrada ainda.</div>';
+        return;
+      }
+      lista.innerHTML = consultas.map((c) => `
+        <div class="cartao" style="box-shadow:none;border-color:var(--borda);margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+            <strong>${formatarDataHora(c.data_hora)}</strong>
+            <span class="selo ${SELO_CONSULTA[c.status] || "selo-cinza"}">${ROTULO_CONSULTA[c.status] || c.status}</span>
+          </div>
+          <p style="margin:8px 0 2px"><strong>Motivo:</strong> ${escaparHtml(c.motivo)}</p>
+          ${c.historico ? `<p><strong>Anamnese:</strong> ${escaparHtml(c.historico)}</p>` : ""}
+          ${c.peso_consulta != null ? `<p><strong>Peso:</strong> ${Number(c.peso_consulta).toLocaleString("pt-BR")} kg</p>` : ""}
+          ${c.temperatura != null ? `<p><strong>Temperatura:</strong> ${Number(c.temperatura).toLocaleString("pt-BR")} °C</p>` : ""}
+          ${c.prescricao ? `<p><strong>Prescrição:</strong> ${escaparHtml(c.prescricao)}</p>` : ""}
+          ${c.observacao ? `<p><strong>Observações:</strong> ${escaparHtml(c.observacao)}</p>` : ""}
+          ${c.sintomas ? `<p style="margin:2px 0"><strong>Sintomas:</strong> ${escaparHtml(c.sintomas)}</p>` : ""}
+          ${c.diagnostico ? `<p style="margin:2px 0"><strong>Diagnóstico:</strong> ${escaparHtml(c.diagnostico)}</p>` : ""}
+          ${c.tratamento ? `<p style="margin:2px 0"><strong>Tratamento:</strong> ${escaparHtml(c.tratamento)}</p>` : ""}
+          <p class="texto-suave" style="margin:6px 0 0;font-size:0.82rem">Atendido por ${escaparHtml(c.nome_veterinario)}</p>
+        </div>
+      `).join("");
+    }
+
+    document.getElementById("form-consulta").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const aviso = document.getElementById("aviso-consulta");
+      aviso.innerHTML = "";
+      try {
+        await api.post("/consultas/", {
+          id_animal: Number(idAnimal),
+          data_hora: document.getElementById("c-data-hora").value.replace("T", " ") + ":00",
+          status: document.getElementById("c-status").value,
+          motivo: document.getElementById("c-motivo").value,
+          historico: document.getElementById("c-historico").value || null,
+          peso_consulta: document.getElementById("c-peso").value || null,
+          temperatura: document.getElementById("c-temperatura").value || null,
+          prescricao: document.getElementById("c-prescricao").value || null,
+          observacao: document.getElementById("c-observacao").value || null,
+          sintomas: document.getElementById("c-sintomas").value || null,
+          diagnostico: document.getElementById("c-diagnostico").value || null,
+          tratamento: document.getElementById("c-tratamento").value || null,
+        });
+        document.getElementById("form-consulta").reset();
+        carregarConsultas();
+      } catch (erro) {
+        mostrarAviso(aviso, erro.message);
+      }
+    });
+
+    // ---------- vacinas ----------
+    async function carregarVacinas() {
+      const lista = document.getElementById("lista-vacinas");
+      lista.innerHTML = '<div class="carregando">Carregando...</div>';
+      const vacinas = await api.get(`/vacinas/?id_animal=${idAnimal}`);
+      if (vacinas.length === 0) {
+        lista.innerHTML = '<div class="tabela-vazia">Nenhuma vacina registrada ainda.</div>';
+        return;
+      }
+      lista.innerHTML = vacinas.map((v) => `
+        <div class="cartao" style="box-shadow:none;border-color:var(--borda);margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap">
+            <strong>${escaparHtml(v.nome_vacina)}</strong>
+            ${v.antirrabica ? '<span class="selo selo-laranja">Antirrábica</span>' : ""}
+          </div>
+          <p style="margin:8px 0 2px">${escaparHtml(v.status)} · ${formatarData(v.data_aplicacao)}
+            ${v.fabricante ? " · " + escaparHtml(v.fabricante) : ""}
+            ${v.lote ? " · lote " + escaparHtml(v.lote) : ""}</p>
+          ${v.tipo_vacina ? `<p>Tipo: ${escaparHtml(v.tipo_vacina)}</p>` : ""}
+          ${v.validade_lote ? `<p>Validade: ${formatarData(v.validade_lote)}</p>` : ""}
+          ${v.dose ? `<p>Dose: ${escaparHtml(v.dose)}</p>` : ""}
+          ${v.via_administracao ? `<p>Via: ${escaparHtml(v.via_administracao)}</p>` : ""}
+          ${v.observacao ? `<p>Observações: ${escaparHtml(v.observacao)}</p>` : ""}
+          ${v.status === "AGENDADA" ? `<button type="button" data-vacina="${Number(v.id_vacina)}" data-status="APLICADA">Confirmar aplicação</button> <button type="button" data-vacina="${Number(v.id_vacina)}" data-status="CANCELADA">Cancelar</button>` : ""}
+          ${v.proxima_dose ? `<p style="margin:2px 0" class="texto-suave">Próxima dose: ${formatarData(v.proxima_dose)}</p>` : ""}
+          <p class="texto-suave" style="margin:6px 0 0;font-size:0.82rem">Registrada por ${escaparHtml(v.nome_veterinario)}</p>
+        </div>
+      `).join("");
+    }
+
+    document.getElementById("lista-vacinas").addEventListener("click", async (ev) => {
+      const b = ev.target.closest("button[data-vacina]");
+      if (!b) return;
+      const dados = {status: b.dataset.status};
+      if (dados.status === "APLICADA") {
+        const hoje = new Date();
+        const pad = n => String(n).padStart(2, "0");
+        dados.data_aplicacao = prompt("Data efetiva (AAAA-MM-DD)", `${hoje.getFullYear()}-${pad(hoje.getMonth()+1)}-${pad(hoje.getDate())}`);
+        if (!dados.data_aplicacao) return;
+      } else if (!confirm("Cancelar vacinação agendada?")) return;
+      b.disabled = true;
+      const aviso = document.getElementById("aviso-vacina");
+      try {
+        const r = await api.put(`/vacinas/${b.dataset.vacina}`, dados);
+        mostrarAviso(aviso, r.id_integracao ? "Atualizada. Consulte Integração governo." : "Vacinação atualizada.", "sucesso");
+        await carregarVacinas();
+      } catch (erro) { mostrarAviso(aviso, erro.message); }
+      finally { b.disabled = false; }
+    });
+
+    document.getElementById("form-vacina").addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const aviso = document.getElementById("aviso-vacina");
+      aviso.innerHTML = "";
+      try {
+        const resultado = await api.post("/vacinas/", {
+          tipo_vacina: document.getElementById("v-tipo").value || null,
+          validade_lote: document.getElementById("v-validade").value || null,
+          status: document.getElementById("v-status").value,
+          id_animal: Number(idAnimal),
+          nome_vacina: document.getElementById("v-nome").value,
+          data_aplicacao: document.getElementById("v-data").value,
+          fabricante: document.getElementById("v-fabricante").value || null,
+          lote: document.getElementById("v-lote").value || null,
+          dose: document.getElementById("v-dose").value || null,
+          via_administracao: document.getElementById("v-via").value || null,
+          proxima_dose: document.getElementById("v-proxima").value || null,
+          antirrabica: document.getElementById("v-antirrabica").checked,
+          observacao: document.getElementById("v-observacao").value || null,
+        });
+        document.getElementById("form-vacina").reset();
+        carregarVacinas();
+        mostrarAviso(aviso, resultado.id_integracao ? "Vacina registrada. Consulte o status em Integração governo." : "Vacinação registrada.", "sucesso");
+      } catch (erro) {
+        mostrarAviso(aviso, erro.message);
+      }
+    });
+
+    // ---------- microchip ----------
+    async function carregarMicrochip() {
+      const cartaoStatus = document.getElementById("cartao-status-microchip");
+      const lista = document.getElementById("lista-microchip");
+      cartaoStatus.innerHTML = '<div class="carregando">Carregando...</div>';
+      const vinculos = await api.get(`/microchips/?id_animal=${idAnimal}`);
+      const ativo = vinculos.find((v) => v.ativo);
+
+      if (ativo) {
+        cartaoStatus.innerHTML = `
+          <h2>Microchip atual</h2>
+          <p><span class="selo selo-verde">Vinculado</span></p>
+          <p style="font-size:1.3rem;font-weight:700;margin:8px 0">${escaparHtml(ativo.numero_microchip)}</p>
+          <p class="texto-suave">Vinculado em ${formatarDataHora(ativo.data_vinculacao)} por ${escaparHtml(ativo.nome_veterinario)}</p>
+          <div class="barra-acoes" style="justify-content:flex-start">
+            <button type="button" class="botao-perigo" id="botao-desvincular">Desvincular</button>
+          </div>
+        `;
+        document.getElementById("botao-desvincular").addEventListener("click", async () => {
+          if (!confirm("Desvincular este microchip? O histórico é mantido.")) return;
+          await api.post(`/microchips/${ativo.id_vinculo}/desvincular`);
+          carregarMicrochip();
+        });
+      } else {
+        cartaoStatus.innerHTML = `
+          <h2>Microchip atual</h2>
+          <p><span class="selo selo-cinza">Sem microchip ativo</span></p>
+          <div id="aviso-microchip"></div>
+          <form id="form-microchip" style="margin-top:10px">
+            <label for="numero-microchip">Número do microchip</label>
+            <input id="numero-microchip" required placeholder="15 dígitos">
+            <div class="barra-acoes" style="justify-content:flex-start">
+              <button type="submit">Vincular microchip</button>
+            </div>
+          </form>
+        `;
+        document.getElementById("form-microchip").addEventListener("submit", async (ev) => {
+          ev.preventDefault();
+          const aviso = document.getElementById("aviso-microchip");
+          aviso.innerHTML = "";
+          try {
+            await api.post("/microchips/", {
+              id_animal: Number(idAnimal),
+              numero_microchip: document.getElementById("numero-microchip").value,
+            });
+            carregarMicrochip();
+          } catch (erro) {
+            mostrarAviso(aviso, erro.message);
+          }
+        });
+      }
+
+      if (vinculos.length === 0) {
+        lista.innerHTML = '<div class="tabela-vazia">Nenhum vínculo registrado ainda.</div>';
+        return;
+      }
+      const tabela = document.createElement("table");
+      tabela.innerHTML = `
+        <thead><tr><th>Número</th><th>Vinculado em</th><th>Desvinculado em</th><th>Status</th></tr></thead>
+        <tbody>
+          ${vinculos.map((v) => `
+            <tr>
+              <td>${escaparHtml(v.numero_microchip)}</td>
+              <td>${formatarDataHora(v.data_vinculacao)}</td>
+              <td>${v.data_desvinculacao ? formatarDataHora(v.data_desvinculacao) : "—"}</td>
+              <td>${v.ativo ? '<span class="selo selo-verde">Ativo</span>' : '<span class="selo selo-cinza">Inativo</span>'}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      `;
+      lista.innerHTML = "";
+      lista.appendChild(tabela);
+    }
+
+    carregarAnimal();
+    carregarConsultas();
+    carregarVacinas();
+    carregarMicrochip();
+  </script>
+</body>
+</html>

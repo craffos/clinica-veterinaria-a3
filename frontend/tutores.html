@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tutores · Clínica Veterinária</title>
+  <link rel="stylesheet" href="css/style.css?v=2">
+</head>
+<body>
+  <script src="js/api.js?v=2"></script>
+  <script src="js/auth.js?v=2"></script>
+  <script src="js/nav.js?v=2"></script>
+  <script>
+    const conteudo = renderNav("tutores");
+
+    conteudo.innerHTML = `
+      <div class="cabecalho-pagina">
+        <div>
+          <h1>Tutores</h1>
+          <p>Pessoas responsáveis pelos animais atendidos na clínica.</p>
+        </div>
+      </div>
+
+      <div class="cartao">
+        <div class="barra-ferramentas">
+          <input type="search" id="busca" placeholder="Buscar por nome ou CPF...">
+          <button type="button" class="botao-primario empurra-direita" id="botao-novo">+ Novo tutor</button>
+        </div>
+        <div id="area-tabela"></div>
+      </div>
+
+      <div class="fundo-modal" id="fundo-modal" hidden>
+        <div class="modal">
+          <button class="fechar-modal" id="fechar-modal" type="button">&times;</button>
+          <h2 id="titulo-modal">Novo tutor</h2>
+          <div id="aviso-modal"></div>
+          <form id="form-tutor">
+            <input type="hidden" id="id_tutor">
+
+            <label for="nome_completo">Nome completo</label>
+            <input id="nome_completo" required>
+
+            <div class="linha-campos">
+              <div>
+                <label for="cpf">CPF</label>
+                <input id="cpf" required placeholder="000.000.000-00">
+              </div>
+              <div>
+                <label for="dt_nasc">Data de nascimento</label>
+                <input id="dt_nasc" type="date">
+              </div>
+            </div>
+
+            <div class="linha-campos">
+              <div>
+                <label for="email">E-mail</label>
+                <input id="email" type="email">
+              </div>
+              <div>
+                <label for="telefone">Telefone</label>
+                <input id="telefone">
+              </div>
+            </div>
+
+            <fieldset>
+              <legend>Endereço</legend>
+              <div class="linha-campos">
+                <div>
+                  <label for="cep">CEP</label>
+                  <input id="cep" required placeholder="00000-000">
+                </div>
+                <div style="display:flex; align-items:flex-end;">
+                  <button type="button" class="botao-secundario" id="botao-buscar-cep">Buscar CEP</button>
+                </div>
+              </div>
+              <label for="logradouro">Logradouro</label>
+              <input id="logradouro" required>
+              <div class="linha-campos">
+                <div>
+                  <label for="numero">Número</label>
+                  <input id="numero" required>
+                </div>
+                <div>
+                  <label for="complemento">Complemento</label>
+                  <input id="complemento">
+                </div>
+              </div>
+              <div class="linha-campos">
+                <div>
+                  <label for="bairro">Bairro</label>
+                  <input id="bairro" required>
+                </div>
+                <div>
+                  <label for="cidade">Cidade</label>
+                  <input id="cidade" required>
+                </div>
+                <div>
+                  <label for="uf">UF</label>
+                  <input id="uf" maxlength="2" required>
+                </div>
+              </div>
+              <label for="codigo_ibge">Código IBGE do município</label>
+              <input id="codigo_ibge" maxlength="7" pattern="[0-9]{7}" inputmode="numeric" placeholder="Preenchido pelo CEP">
+            </fieldset>
+
+            <div class="barra-acoes">
+              <button type="button" class="botao-secundario" id="cancelar-modal">Cancelar</button>
+              <button type="submit" id="salvar-tutor">Salvar</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+
+    const areaTabela = document.getElementById("area-tabela");
+    const fundoModal = document.getElementById("fundo-modal");
+    const formTutor = document.getElementById("form-tutor");
+    const avisoModal = document.getElementById("aviso-modal");
+
+    function abrirModal(tutor) {
+      formTutor.reset();
+      avisoModal.innerHTML = "";
+      document.getElementById("titulo-modal").textContent = tutor ? "Editar tutor" : "Novo tutor";
+      document.getElementById("id_tutor").value = tutor ? tutor.id_tutor : "";
+      if (tutor) {
+        document.getElementById("nome_completo").value = tutor.nome_completo;
+        document.getElementById("cpf").value = tutor.cpf;
+        document.getElementById("dt_nasc").value = (tutor.dt_nasc || "").slice(0, 10);
+        document.getElementById("email").value = tutor.email || "";
+        document.getElementById("telefone").value = tutor.telefone || "";
+        document.getElementById("cep").value = tutor.cep;
+        document.getElementById("logradouro").value = tutor.logradouro;
+        document.getElementById("numero").value = tutor.numero;
+        document.getElementById("complemento").value = tutor.complemento || "";
+        document.getElementById("bairro").value = tutor.bairro;
+        document.getElementById("cidade").value = tutor.cidade;
+        document.getElementById("uf").value = tutor.uf;
+        document.getElementById("codigo_ibge").value = tutor.codigo_ibge || "";
+      }
+      fundoModal.hidden = false;
+    }
+
+    function fecharModal() { fundoModal.hidden = true; }
+    document.getElementById("botao-novo").addEventListener("click", () => abrirModal(null));
+    document.getElementById("fechar-modal").addEventListener("click", fecharModal);
+    document.getElementById("cancelar-modal").addEventListener("click", fecharModal);
+    fundoModal.addEventListener("click", (ev) => { if (ev.target === fundoModal) fecharModal(); });
+
+    document.getElementById("botao-buscar-cep").addEventListener("click", async () => {
+      const cep = document.getElementById("cep").value.replace(/\D/g, "");
+      if (cep.length !== 8) {
+        mostrarAviso(avisoModal, "Digite um CEP com 8 dígitos antes de buscar.");
+        return;
+      }
+      try {
+        const dados = await api.get(`/cep/${cep}`);
+        document.getElementById("logradouro").value = dados.logradouro;
+        document.getElementById("bairro").value = dados.bairro;
+        document.getElementById("cidade").value = dados.cidade;
+        document.getElementById("uf").value = dados.uf;
+        document.getElementById("codigo_ibge").value = dados.codigo_ibge || "";
+        avisoModal.innerHTML = "";
+      } catch (erro) {
+        mostrarAviso(avisoModal, erro.message);
+      }
+    });
+
+    for (const campo of ["cep", "cidade", "uf"]) {
+      document.getElementById(campo).addEventListener("input", () => {
+        document.getElementById("codigo_ibge").value = "";
+      });
+    }
+
+    formTutor.addEventListener("submit", async (ev) => {
+      ev.preventDefault();
+      const botao = document.getElementById("salvar-tutor");
+      botao.disabled = true;
+      avisoModal.innerHTML = "";
+      const idTutor = document.getElementById("id_tutor").value;
+      const corpo = {
+        nome_completo: document.getElementById("nome_completo").value,
+        cpf: document.getElementById("cpf").value,
+        dt_nasc: document.getElementById("dt_nasc").value || null,
+        email: document.getElementById("email").value || null,
+        telefone: document.getElementById("telefone").value || null,
+        endereco: {
+          cep: document.getElementById("cep").value.replace(/\D/g, ""),
+          codigo_ibge: document.getElementById("codigo_ibge").value || null,
+          logradouro: document.getElementById("logradouro").value,
+          numero: document.getElementById("numero").value,
+          complemento: document.getElementById("complemento").value || null,
+          bairro: document.getElementById("bairro").value,
+          cidade: document.getElementById("cidade").value,
+          uf: document.getElementById("uf").value,
+        },
+      };
+      try {
+        if (idTutor) await api.put(`/tutores/${idTutor}`, corpo);
+        else await api.post("/tutores/", corpo);
+        fecharModal();
+        carregarTutores();
+      } catch (erro) {
+        mostrarAviso(avisoModal, erro.message);
+      } finally {
+        botao.disabled = false;
+      }
+    });
+
+    async function inativarTutor(tutor) {
+      if (!confirm(`Inativar o tutor "${tutor.nome_completo}"? Os animais dele continuam no sistema.`)) return;
+      try {
+        await api.delete(`/tutores/${tutor.id_tutor}`);
+        carregarTutores();
+      } catch (erro) {
+        alert(erro.message);
+      }
+    }
+
+    function linhaTutor(t) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><strong>${escaparHtml(t.nome_completo)}</strong></td>
+        <td>${escaparHtml(t.cpf)}</td>
+        <td>${escaparHtml(t.telefone || "—")}</td>
+        <td>${escaparHtml(t.cidade)}/${escaparHtml(t.uf)}</td>
+        <td class="acoes">
+          <button class="botao-texto" data-acao="animais">Animais</button>
+          <button class="botao-texto" data-acao="editar">Editar</button>
+          <button class="botao-texto" data-acao="inativar" style="color:var(--vermelho)">Inativar</button>
+        </td>
+      `;
+      tr.querySelector('[data-acao="editar"]').addEventListener("click", () => abrirModal(t));
+      tr.querySelector('[data-acao="inativar"]').addEventListener("click", () => inativarTutor(t));
+      tr.querySelector('[data-acao="animais"]').addEventListener("click", () => {
+        location.href = `animais.html?id_tutor=${t.id_tutor}`;
+      });
+      return tr;
+    }
+
+    async function carregarTutores() {
+      areaTabela.innerHTML = '<div class="carregando">Carregando...</div>';
+      try {
+        const termo = document.getElementById("busca").value.trim();
+        const tutores = await api.get(`/tutores/${termo ? "?q=" + encodeURIComponent(termo) : ""}`);
+        if (tutores.length === 0) {
+          areaTabela.innerHTML = '<div class="tabela-vazia">Nenhum tutor cadastrado ainda.</div>';
+          return;
+        }
+        const tabela = document.createElement("table");
+        tabela.innerHTML = `
+          <thead><tr><th>Nome</th><th>CPF</th><th>Telefone</th><th>Cidade</th><th></th></tr></thead>
+          <tbody></tbody>
+        `;
+        const corpo = tabela.querySelector("tbody");
+        tutores.forEach((t) => corpo.appendChild(linhaTutor(t)));
+        areaTabela.innerHTML = "";
+        areaTabela.appendChild(tabela);
+      } catch (erro) {
+        mostrarAviso(areaTabela, erro.message);
+      }
+    }
+
+    let temporizadorBusca;
+    document.getElementById("busca").addEventListener("input", () => {
+      clearTimeout(temporizadorBusca);
+      temporizadorBusca = setTimeout(carregarTutores, 300);
+    });
+
+    carregarTutores();
+  </script>
+</body>
+</html>

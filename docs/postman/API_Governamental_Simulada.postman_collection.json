@@ -1,0 +1,463 @@
+{
+  "info": {
+    "_postman_id": "677b20ca-e4dd-4b19-a1c5-cf8cf5c726de",
+    "name": "API Governamental Simulada",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "GOV-01 - Disponibilidade da API",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://127.0.0.1:5001/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GOV-02 - Acesso sem API Key",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "",
+            "value": "",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "http://127.0.0.1:5001/animais/1",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            "animais",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GOV-03 - Acesso com API Key invalida",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "value": "chave-invalida-123"
+          }
+        ],
+        "url": {
+          "raw": "http://127.0.0.1:5001/animais/1",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            "animais",
+            "1"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GOV-04 - Vacinacao sem cadastro previo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{governo_api_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"chave_idempotencia\": \"teste-gov-vacina-001\",\r\n    \"id_animal_clinica\": 900001,\r\n    \"id_vacina_clinica\": 900001,\r\n    \"data_aplicacao\": \"2026-11-25\",\r\n    \"lote\": \"LOTE-TESTE-001\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5001/vacinas/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            "vacinas",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GOV-05: Idempotência",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{governo_api_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"chave_idempotencia\": \"teste-gov-vacina-001\",\r\n    \"id_animal_clinica\": 900001,\r\n    \"id_vacina_clinica\": 900001,\r\n    \"data_aplicacao\": \"2026-11-25\",\r\n    \"lote\": \"LOTE-TESTE-001\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5001/vacinas/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            "vacinas",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GOV-06 - Conflito de idempotencia",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{governo_api_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"chave_idempotencia\": \"teste-gov-vacina-001\",\r\n    \"id_animal_clinica\": 900001,\r\n    \"id_vacina_clinica\": 900001,\r\n    \"data_aplicacao\": \"2026-11-25\",\r\n    \"lote\": \"LOTE-TESTE-002\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5001/vacinas/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            "vacinas",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GOV-07 - Cadastro de animal",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{governo_api_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"chave_idempotencia\": \"teste-gov-animal-001\",\r\n    \"id_animal_clinica\": 900001,\r\n    \"nome\": \"Thor\",\r\n    \"especie\": \"Cachorro\",\r\n    \"raca\": \"Labrador\",\r\n    \"numero_microchip\": \"900000000000001\",\r\n    \"versao_origem\": 1\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5001/animais/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            "animais",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GOV-09 - Atualizacao cadastral do animal",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{governo_api_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"chave_idempotencia\": \"teste-gov-animal-002\",\r\n    \"id_animal_clinica\": 900001,\r\n    \"nome\": \"Thor Junior\",\r\n    \"especie\": \"Cachorro\",\r\n    \"raca\": \"Labrador\",\r\n    \"numero_microchip\": \"900000000000001\",\r\n    \"versao_origem\": 2\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5001/animais/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            "animais",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GOV-10 - Consulta por microchip RFID",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{governo_api_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json",
+            "disabled": true
+          }
+        ],
+        "url": {
+          "raw": "http://127.0.0.1:5001/animais/microchip/900000000000001",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            "animais",
+            "microchip",
+            "900000000000001"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GOV-11 - Microchip duplicado",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{governo_api_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"chave_idempotencia\": \"teste-gov-animal-003\",\r\n    \"id_animal_clinica\": 900002,\r\n    \"nome\": \"Rex\",\r\n    \"especie\": \"Cachorro\",\r\n    \"raca\": \"Pastor Alemao\",\r\n    \"numero_microchip\": \"900000000000001\",\r\n    \"versao_origem\": 1\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5001/animais/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            "animais",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GOV-12 - Atualizacao desatualizada",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{governo_api_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"chave_idempotencia\": \"teste-gov-animal-001\",\r\n    \"id_animal_clinica\": 900001,\r\n    \"nome\": \"Thor\",\r\n    \"especie\": \"Cachorro\",\r\n    \"raca\": \"Labrador\",\r\n    \"numero_microchip\": \"900000000000001\",\r\n    \"versao_origem\": 1\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5001/animais/",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            "animais",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "GOV-13 - Simulacao de indisponibilidade",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "x-api-key",
+            "value": "{{governo_api_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\r\n    \"chave_idempotencia\": \"teste-gov-vacina-002\",\r\n    \"id_animal_clinica\": 900001,\r\n    \"id_vacina_clinica\": 900002,\r\n    \"data_aplicacao\": \"2026-11-25\",\r\n    \"lote\": \"LOTE-TESTE-FALHA\"\r\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://127.0.0.1:5001/vacinas/?simular_falha=1",
+          "protocol": "http",
+          "host": [
+            "127",
+            "0",
+            "0",
+            "1"
+          ],
+          "port": "5001",
+          "path": [
+            "vacinas",
+            ""
+          ],
+          "query": [
+            {
+              "key": "simular_falha",
+              "value": "1"
+            }
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "governo_api_key",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

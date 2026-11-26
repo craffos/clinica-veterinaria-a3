@@ -1,0 +1,491 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Integração governo · Clínica Veterinária</title>
+  <link rel="stylesheet" href="css/style.css?v=2">
+</head>
+<body>
+
+  <script src="js/api.js?v=2"></script>
+  <script src="js/auth.js?v=2"></script>
+  <script src="js/nav.js?v=2"></script>
+
+  <script>
+
+    const conteudo = renderNav("integracoes");
+
+    conteudo.innerHTML = `
+      <div class="cabecalho-pagina">
+        <div>
+          <h1>Integração com o governo</h1>
+          <p>
+            Acompanhamento dos cadastros, atualizações de animais
+            e vacinas antirrábicas enviados à API governamental simulada.
+          </p>
+        </div>
+      </div>
+
+      <div class="grade-cartoes" id="resumo-integracoes"></div>
+
+      <div class="cartao">
+
+        <div id="aviso-integracao"
+             role="status"
+             aria-live="polite"></div>
+
+        <div class="barra-ferramentas">
+
+          <select id="filtro-status">
+            <option value="">Todos os status</option>
+            <option value="PENDENTE">Pendente</option>
+            <option value="ENVIADO">Enviado</option>
+            <option value="CONFIRMADO">Confirmado</option>
+            <option value="FALHA">Falha</option>
+          </select>
+
+          <button type="button"
+                  class="botao-secundario"
+                  id="atualizar">
+            Atualizar
+          </button>
+
+        </div>
+
+        <div id="area-tabela"
+             style="overflow-x:auto"></div>
+
+      </div>
+    `;
+
+
+    // Configuração visual dos status.
+
+    const SELO = {
+      PENDENTE: "selo-azul",
+      ENVIADO: "selo-azul",
+      CONFIRMADO: "selo-verde",
+      FALHA: "selo-vermelho"
+    };
+
+
+    const ROTULO_TIPO = {
+      CADASTRO_ANIMAL: "Cadastro de animal",
+      ATUALIZACAO_ANIMAL: "Atualização de animal",
+      VACINA_ANTIRRABICA: "Vacina antirrábica"
+    };
+
+
+    const aviso =
+      document.getElementById("aviso-integracao");
+
+    const filtro =
+      document.getElementById("filtro-status");
+
+    const botaoAtualizar =
+      document.getElementById("atualizar");
+
+    const area =
+      document.getElementById("area-tabela");
+
+    let ocupado = false;
+
+
+    // Bloqueia operações simultâneas na interface.
+
+    function controlarOperacao(valor) {
+
+      ocupado = valor;
+
+      filtro.disabled = valor;
+      botaoAtualizar.disabled = valor;
+
+      area.querySelectorAll("button").forEach(botao => {
+        botao.disabled = valor;
+      });
+
+    }
+
+
+    // Cria os indicadores de acompanhamento.
+
+    function atualizarResumo(lista) {
+
+      const resumo =
+        document.getElementById("resumo-integracoes");
+
+      const indicadores = [
+
+        {
+          rotulo: "Total de integrações",
+          numero: lista.length,
+          cor: "#6366f1"
+        },
+
+        {
+          rotulo: "Pendentes",
+          numero: lista.filter(
+            i => i.status === "PENDENTE"
+          ).length,
+          cor: "#d97706"
+        },
+
+        {
+          rotulo: "Enviadas",
+          numero: lista.filter(
+            i => i.status === "ENVIADO"
+          ).length,
+          cor: "#2563eb"
+        },
+
+        {
+          rotulo: "Confirmadas",
+          numero: lista.filter(
+            i => i.status === "CONFIRMADO"
+          ).length,
+          cor: "#16a34a"
+        },
+
+        {
+          rotulo: "Com falha",
+          numero: lista.filter(
+            i => i.status === "FALHA"
+          ).length,
+          cor: "#dc2626"
+        }
+
+      ];
+
+      resumo.innerHTML = "";
+
+      indicadores.forEach(item => {
+
+        const cartao = document.createElement("div");
+
+        cartao.className = "cartao";
+
+        cartao.style.borderLeft =
+          `4px solid ${item.cor}`;
+
+        cartao.innerHTML = `
+          <div style="
+            font-size:1.7rem;
+            font-weight:700;
+            color:${item.cor};
+          ">
+            ${item.numero}
+          </div>
+
+          <div class="texto-suave"
+               style="font-size:0.85rem">
+            ${item.rotulo}
+          </div>
+        `;
+
+        resumo.appendChild(cartao);
+
+      });
+
+    }
+
+
+    // Reenvia uma integração existente.
+    // A elegibilidade é determinada pelo backend.
+
+    async function reenviar(id, botao) {
+
+      if (ocupado) return;
+
+      controlarOperacao(true);
+
+      botao.textContent = "Reenviando...";
+
+      aviso.textContent = "";
+
+      try {
+
+        await api.post(`/integracoes/${id}/reenviar`);
+
+        // Consulta o estado real após a tentativa.
+
+        const resultado =
+          await api.get(`/integracoes/${id}`);
+
+        if (resultado.status === "CONFIRMADO") {
+
+          mostrarAviso(
+            aviso,
+            "Integração confirmada com sucesso! Protocolo: " +
+            (resultado.protocolo || "—"),
+            "sucesso"
+          );
+
+        } else if (resultado.status === "PENDENTE") {
+
+          mostrarAviso(
+            aviso,
+            "A tentativa foi realizada, mas a integração " +
+            "continua pendente. Tente novamente mais tarde."
+          );
+
+        } else if (resultado.status === "FALHA") {
+
+          mostrarAviso(
+            aviso,
+            resultado.mensagem_erro ||
+            "A integração apresentou uma falha."
+          );
+
+        } else {
+
+          mostrarAviso(
+            aviso,
+            "Tentativa registrada. Status atual: " +
+            resultado.status
+          );
+
+        }
+
+      } catch (erro) {
+
+        mostrarAviso(aviso, erro.message);
+
+      } finally {
+
+        controlarOperacao(false);
+
+        await carregar(false);
+
+      }
+
+    }
+
+
+    // Monta as linhas da tabela.
+
+    function linha(i) {
+
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+
+        <td>#${escaparHtml(i.id_integracao)}</td>
+
+        <td>${escaparHtml(i.nome_animal || "—")}</td>
+
+        <td>
+          ${escaparHtml(
+            ROTULO_TIPO[i.tipo_operacao] ||
+            i.tipo_operacao
+          )}
+        </td>
+
+        <td>
+          <span class="selo ${SELO[i.status] || "selo-cinza"}">
+            ${escaparHtml(i.status)}
+          </span>
+        </td>
+
+        <td>
+          ${escaparHtml(i.protocolo || "—")}
+        </td>
+
+        <td class="numerico">
+          ${escaparHtml(i.tentativas ?? 0)}
+        </td>
+
+        <td>
+          ${escaparHtml(
+            formatarDataHora(i.ultima_tentativa)
+          )}
+        </td>
+
+        <td>
+          ${escaparHtml(
+            formatarDataHora(i.data_confirmacao)
+          )}
+        </td>
+
+        <td class="acoes"></td>
+
+      `;
+
+
+      // O backend determina se o reenvio é permitido.
+
+      const podeReenviar =
+        i.status !== "CONFIRMADO" &&
+        Number(i.pode_reenviar) === 1;
+
+
+      if (podeReenviar) {
+
+        const botao = document.createElement("button");
+
+        botao.type = "button";
+
+        botao.className = "botao-texto";
+
+        botao.textContent = "Reenviar";
+
+        botao.addEventListener("click", () => {
+          reenviar(i.id_integracao, botao);
+        });
+
+        tr.querySelector(".acoes").appendChild(botao);
+
+      } else {
+
+        tr.querySelector(".acoes").textContent =
+          i.status === "CONFIRMADO"
+            ? "Concluído"
+            : "—";
+
+      }
+
+
+      return tr;
+
+    }
+
+
+    // Carrega as integrações e aplica o filtro selecionado.
+
+    async function carregar(limparAviso = true) {
+
+      if (ocupado) return;
+
+      controlarOperacao(true);
+
+      if (limparAviso) {
+
+        aviso.textContent = "";
+
+      }
+
+      area.innerHTML =
+        '<div class="carregando">Carregando...</div>';
+
+      try {
+
+        const lista = await api.get("/integracoes/");
+
+        if (!Array.isArray(lista)) {
+
+          throw new Error(
+            "Resposta inesperada da API de integrações."
+          );
+
+        }
+
+        atualizarResumo(lista);
+
+        const status = filtro.value;
+
+        const filtradas = status
+          ? lista.filter(i => i.status === status)
+          : lista;
+
+
+        if (filtradas.length === 0) {
+
+          area.innerHTML = `
+            <div class="tabela-vazia">
+              Nenhuma integração encontrada para o filtro selecionado.
+            </div>
+          `;
+
+          return;
+
+        }
+
+
+        const tabela = document.createElement("table");
+
+        tabela.innerHTML = `
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Animal</th>
+              <th>Operação</th>
+              <th>Status</th>
+              <th>Protocolo</th>
+              <th>Tentativas</th>
+              <th>Última tentativa</th>
+              <th>Confirmação</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+
+          <tbody></tbody>
+        `;
+
+        const corpo = tabela.querySelector("tbody");
+
+
+        filtradas.forEach(i => {
+
+          corpo.appendChild(linha(i));
+
+          if (i.mensagem_erro) {
+
+            const detalhe =
+              document.createElement("tr");
+
+            detalhe.innerHTML = `
+              <td colspan="9"
+                  style="
+                    color:#b45309;
+                    font-size:0.82rem;
+                    padding-top:0;
+                  ">
+                Erro: ${escaparHtml(i.mensagem_erro)}
+              </td>
+            `;
+
+            corpo.appendChild(detalhe);
+
+          }
+
+        });
+
+
+        area.innerHTML = "";
+
+        area.appendChild(tabela);
+
+
+      } catch (erro) {
+
+        area.innerHTML = "";
+
+        document.getElementById(
+          "resumo-integracoes"
+        ).innerHTML = "";
+
+        mostrarAviso(aviso, erro.message);
+
+      } finally {
+
+        controlarOperacao(false);
+
+      }
+
+    }
+
+
+    filtro.addEventListener("change", () => carregar());
+
+    botaoAtualizar.addEventListener(
+      "click",
+      () => carregar()
+    );
+
+    carregar();
+
+  </script>
+
+</body>
+</html>

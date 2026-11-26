@@ -1,0 +1,445 @@
+{
+  "info": {
+    "_postman_id": "40e84207-883c-45a7-b932-f24f552b3fa4",
+    "name": "Testes de Integracao - Clinica e Governo",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Executar manualmente em ambiente de testes. Ajustar IDs conforme os registros criados. Preencher credenciais localmente e obter JWT no INT-02. Parar a API governamental antes do INT-08 e reiniciá-la antes do INT-09. Não executar a coleção inteira automaticamente em banco com dados existentes.\nPreencha email_teste e senha_teste localmente. O login salva bearerToken. Não exporte valores de credenciais. Exemplos de resposta são ilustrativos, não evidências de execução. Execute operações de escrita somente em ambiente de testes.\nINT-03 e INT-08 capturam os IDs retornados; confira os valores antes de prosseguir. Os IDs iniciais são exemplos do cenário original."
+  },
+  "item": [
+    {
+      "name": "INT-01 - Disponibilidade da API privada",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "INT-02 - Login e obtencao do JWT",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"{{email_teste}}\",\n    \"senha\": \"{{senha_teste}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "auth",
+            "login"
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 200) {",
+              "    const data = pm.response.json();",
+              "    if (data.token) pm.collectionVariables.set(\"bearerToken\", data.token);",
+              "} else {",
+              "    pm.collectionVariables.unset(\"bearerToken\");",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "INT-03 - Cadastro de animal e sincronizacao",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"nome\": \"Max\",\n    \"id_especie\": 1,\n    \"id_raca\": 2,\n    \"sexo\": \"M\",\n    \"dt_nasc\": \"2023-05-15\",\n    \"porte\": \"MEDIO\",\n    \"id_tutor\": 1,\n    \"observacao\": \"Animal ficticio para teste de integracao A3\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/animais/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "animais",
+            ""
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "    const id = pm.response.json().id_animal;",
+              "    if (id) pm.collectionVariables.set(\"id_animal\", String(id));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "INT-04 - Vinculacao de microchip e sincronizacao",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"id_animal\": {{id_animal}},\n    \"numero_microchip\": \"900000000000002\",\n    \"observacao\": \"Microchip ficticio para teste de integracao A3\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/microchips/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "microchips",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "INT-05 - Atualizacao cadastral integrada",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"nome\": \"Max Junior\",\n    \"id_especie\": 1,\n    \"id_raca\": 2,\n    \"sexo\": \"M\",\n    \"dt_nasc\": \"2023-05-15\",\n    \"porte\": \"MEDIO\",\n    \"id_tutor\": 1,\n    \"observacao\": \"Animal ficticio atualizado para teste de integracao A3\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/animais/{{id_animal}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "animais",
+            "{{id_animal}}"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "INT-06 - Vacinacao antirrabica e sincronizacao",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"id_animal\": {{id_animal}},\n    \"nome_vacina\": \"Vacina Antirrabica\",\n    \"antirrabica\": 1,\n    \"fabricante\": \"Laboratorio Ficticio A3\",\n    \"lote\": \"RAIVA-A3-001\",\n    \"data_aplicacao\": \"2026-11-25\",\n    \"dose\": \"1 mL\",\n    \"via_administracao\": \"Subcutanea\",\n    \"proxima_dose\": \"2027-11-25\",\n    \"observacao\": \"Vacinacao ficticia para teste de integracao A3\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/vacinas/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "vacinas",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "INT-07 - Vacinacao nao antirrabica",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"id_animal\": {{id_animal}},\n    \"nome_vacina\": \"Vacina Multipla V10\",\n    \"antirrabica\": 0,\n    \"fabricante\": \"Laboratorio Ficticio A3\",\n    \"lote\": \"V10-A3-001\",\n    \"data_aplicacao\": \"2026-11-25\",\n    \"dose\": \"1 mL\",\n    \"via_administracao\": \"Subcutanea\",\n    \"proxima_dose\": \"2027-11-25\",\n    \"observacao\": \"Vacina ficticia sem obrigatoriedade de integracao governamental\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/vacinas/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "vacinas",
+            ""
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "INT-08 - Vacinacao com governo indisponivel",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"id_animal\": {{id_animal}},\n    \"nome_vacina\": \"Vacina Antirrabica\",\n    \"antirrabica\": 1,\n    \"fabricante\": \"Laboratorio Ficticio A3\",\n    \"lote\": \"RAIVA-A3-FALHA-001\",\n    \"data_aplicacao\": \"2026-11-25\",\n    \"dose\": \"1 mL\",\n    \"via_administracao\": \"Subcutanea\",\n    \"proxima_dose\": \"2027-11-25\",\n    \"observacao\": \"Teste ficticio de tolerancia a falhas da API governamental\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/vacinas/",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "vacinas",
+            ""
+          ]
+        }
+      },
+      "response": [],
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.response.code === 201) {",
+              "    const id = pm.response.json().id_integracao;",
+              "    if (id) pm.collectionVariables.set(\"id_integracao\", String(id));",
+              "}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "INT-09 - Reenvio de integracao pendente",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/integracoes/{{id_integracao}}/reenviar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "integracoes",
+            "{{id_integracao}}",
+            "reenviar"
+          ]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "INT-10 - Bloqueio de reenvio confirmado",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{bearerToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/integracoes/{{id_integracao}}/reenviar",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "integracoes",
+            "{{id_integracao}}",
+            "reenviar"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:5000",
+      "type": "string"
+    },
+    {
+      "key": "bearerToken",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "email_teste",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "senha_teste",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "id_animal",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "id_integracao",
+      "value": "5",
+      "type": "string"
+    }
+  ]
+}
